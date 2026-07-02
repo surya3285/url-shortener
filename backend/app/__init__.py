@@ -1,4 +1,5 @@
 from flask import Flask
+from sqlalchemy.exc import IntegrityError
 
 from . import cache
 from .config import Config
@@ -23,6 +24,10 @@ def create_app(config_object=Config):
     app.register_blueprint(bp)
 
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except IntegrityError:
+            # Another worker created the schema concurrently; safe to ignore.
+            db.session.rollback()
 
     return app

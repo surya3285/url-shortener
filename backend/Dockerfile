@@ -12,4 +12,6 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "wsgi:app"]
+# --preload loads the app (and runs db.create_all) once in the master
+# process before forking workers, avoiding a schema-creation race.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--preload", "wsgi:app"]
