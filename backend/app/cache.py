@@ -30,6 +30,6 @@ def set_url(code, original_url):
     if _client is None:
         return
     try:
-        _client.setex(_key(code), _ttl, original_url)
+        _client.set(_key(code), original_url, ex=_ttl)
     except redis.RedisError:
         pass
