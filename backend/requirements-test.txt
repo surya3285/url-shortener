@@ -1,0 +1,10 @@
+# Dependencies needed to run the pytest suite only.
+# Tests use SQLite + in-memory rate limiting, so psycopg2 (Postgres driver)
+# and gunicorn are intentionally excluded — they aren't imported by the tests
+# and psycopg2 has no prebuilt wheel on newer Python versions.
+Flask==3.0.3
+SQLAlchemy==2.0.31
+Flask-SQLAlchemy==3.1.1
+redis==5.0.7
+Flask-Limiter==3.7.0
+pytest==8.2.2
