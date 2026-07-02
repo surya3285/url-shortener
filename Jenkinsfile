@@ -3,8 +3,7 @@ pipeline {
 
     options {
         timestamps()
-        // Stop a run if it hangs (e.g. a Docker build wedging).
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 20, unit: 'MINUTES')
         disableConcurrentBuilds()
     }
 
@@ -42,24 +41,21 @@ pipeline {
             }
         }
 
-        stage('Build images') {
-            steps {
-                // Confirms both Dockerfiles build (frontend build runs inside its image).
-                sh 'docker compose build'
-            }
-        }
+        // NOTE: The Docker image build stage was removed to keep CI light
+        // enough for a small (≈1 GB RAM) instance. Images are built on the
+        // deploy host via `docker compose build`, not in CI. If you move to a
+        // larger runner, re-add a stage that runs `docker compose build`.
     }
 
     post {
         success {
-            echo 'Pipeline succeeded: tests green and images built.'
+            echo 'Pipeline succeeded: backend tests green.'
         }
         failure {
             echo 'Pipeline failed — check the stage logs above.'
         }
         cleanup {
-            // Free workspace disk; keep the Jenkins node tidy.
-            sh 'docker compose down --remove-orphans || true'
+            // Keep the workspace tidy; no Docker teardown needed for tests-only CI.
             cleanWs()
         }
     }
