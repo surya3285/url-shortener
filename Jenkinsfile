@@ -7,6 +7,13 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    environment {
+        // Public address used to build the short links returned by the API.
+        // Replace with your EC2 public IP. Tip: attach an Elastic IP so this
+        // doesn't change when the instance stops/starts.
+        BASE_URL = 'http://13.63.46.21:8080'
+    }
+
     triggers {
         // Fires when GitHub sends a push webhook to /github-webhook/.
         // Requires the "GitHub" plugin and the job's
@@ -41,22 +48,27 @@ pipeline {
             }
         }
 
-        // NOTE: The Docker image build stage was removed to keep CI light
-        // enough for a small (≈1 GB RAM) instance. Images are built on the
-        // deploy host via `docker compose build`, not in CI. If you move to a
-        // larger runner, re-add a stage that runs `docker compose build`.
+        stage('Deploy') {
+            // Only runs if the tests above passed (a failed stage aborts the run).
+            steps {
+                sh '''
+                    set -e
+                    # Rebuild images from the freshly checked-out code and
+                    # recreate only the containers that changed. BASE_URL is
+                    # picked up from the pipeline environment above.
+                    docker compose up -d --build --remove-orphans
+                    docker compose ps
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo 'Pipeline succeeded: backend tests green.'
+            echo "Deployed: tests green and containers restarted. App at ${env.BASE_URL}"
         }
         failure {
-            echo 'Pipeline failed — check the stage logs above.'
-        }
-        cleanup {
-            // Keep the workspace tidy; no Docker teardown needed for tests-only CI.
-            cleanWs()
+            echo 'Pipeline failed — check the stage logs above. Deploy was skipped.'
         }
     }
 }
