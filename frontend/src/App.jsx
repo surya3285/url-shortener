@@ -28,9 +28,30 @@ export default function App() {
 
   async function copyLink() {
     if (!result) return;
-    await navigator.clipboard.writeText(result.short_url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const text = result.short_url;
+
+    // navigator.clipboard only works in secure contexts (https / localhost).
+    // Over plain http (e.g. an EC2 IP) it's undefined, so fall back to a
+    // temporary textarea + execCommand, which works everywhere.
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("Couldn't copy automatically — please copy the link manually.");
+    }
   }
 
   async function loadStats() {
